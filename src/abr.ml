@@ -1,3 +1,4 @@
+(** Author Qiwei XIAN *)
 type abr = Empty | Node of int * abr * abr
 
 (* Question 1.1 *)
@@ -99,57 +100,95 @@ let isomorphe (a: abr) (b: abr) =
     am == bm
 ;;
 
-type pair = None | Nodep of string * (int list)
+type pair = None | Nodep of string * ((int list) ref)
 let print_pair p = 
     match p with
-    | None -> Printf.printf "" ;
-    | Nodep(s, v_list)-> Printf.printf "%s :" s; printList v_list;
+    | None -> ();
+    | Nodep(s, v_list)-> Printf.printf "s: %s : " s; printList !v_list;
 ;;
 
 let rec print_pair_list p_List =
     match p_List with
-    |[] -> Printf.printf "" ;
+    |[] -> ();
     |a::rest -> print_pair a; 
                 print_pair_list rest;
 ;;
 
 let modify_list list v =
     match !list with
-    |[] -> list:=  [v]
-    |a::rest -> list:= v::a::rest
+    |[] -> list := [v]
+    |a::rest -> list := v::a::rest
 ;;
 
-let rec ajoute_mot_value mot valeur list =
+
+let rec ajoute_mot_value mot valeur list head =
     match !list with
-    |[] -> list := [Nodep(mot, [valeur])]; Printf.printf "(%s: %d)\n" mot valeur ;
-    |None::rest -> ajoute_mot_value mot valeur (ref rest)
+    |[] -> modify_list head (Nodep(mot, ref [valeur])); 
+    |None::rest -> ajoute_mot_value mot valeur (ref rest) head
     |Nodep(s, v_list)::rest ->
-        Printf.printf "(%s: %d) Nodep %s" mot valeur s; printList v_list;
-        if s == mot then modify_list (ref v_list) valeur
-        else ajoute_mot_value mot valeur (ref rest)
+        if (compare s mot == 0) then modify_list v_list valeur
+        else ajoute_mot_value mot valeur (ref rest) head
 ;;
 
-
-let change_Arbre_to_pairList abr =
-    let list = [] in
+let change_Tree_to_pairList abr =
+    let list = ref [] in
     let rec helper abr list =
     match abr with
     |Empty -> "";
     |Node(v, l, r)->
         let mot = "(" ^ (helper l list) ^ ")" ^ (helper r list) in
-        ajoute_mot_value mot v list;
+        ajoute_mot_value mot v list list;
         mot
-    in (helper abr (ref list)); 
+    in  (helper abr list); 
     list
 ;;
 
+type compressor = None | Noeud of compressor * (int list) list * compressor
+
+let rec list_to_llist l = 
+    match l with
+    |[] -> []
+    |a::rest -> [a]::list_to_llist rest
+;;
+
+let make_compressor (pair : pair)  =
+    match pair with
+    |None -> None
+    |Nodep(s, v_list) -> Noeud(None, list_to_llist (!v_list), None) 
+;;
+
+let rec print_list_list (l : (int list) list) =
+    match l with
+    | [] -> ()
+    | subl::rest -> printList subl; print_list_list rest;
+;;
+
+let rec print_compressor (pair : compressor) = 
+    match pair with
+    | None -> Printf.printf " None ";
+    | Noeud(left, v_list_list, right) -> 
+        print_compressor left; print_list_list v_list_list; print_compressor right;
+;;
+
+let pairList_to_map (list : pair list) =
+    let lib = ref (Hashtbl.create (List.length list)) in
+    
+    let rec helper (list : pair list) lib = 
+        match list with
+        |[] -> ()
+        |None::rest -> helper rest lib 
+        |Nodep(s, v_list)::rest-> 
+            let tmp = (make_compressor (Nodep(s, v_list))) in
+            Hashtbl.add !lib s tmp;
+            helper rest lib;
+    in helper list lib; lib
+;;
+
+
 
 (* ------- main ------- *)
-(* let arr = gen_permutation 10 
-let () = printList arr
-let b = ajouteList Empty arr *)
+(* let arr = gen_permutation 10 *)
 let a_list = [4; 2; 1; 3; 8; 6; 5; 7; 9]
-let tmp = ref [9; 11]
 let a = ajouteList Empty a_list
-let p_list = change_Arbre_to_pairList a
-let () = print_pair_list p_list
+let p_list = change_Tree_to_pairList a
+let lib = pairList_to_map !p_list
