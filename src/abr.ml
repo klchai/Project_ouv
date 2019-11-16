@@ -145,7 +145,7 @@ let tree_traversal (abr : abr) (length : int) =
     list, lib
 ;;
 
-type compressor = None | Noeud of (compressor ref) * (int list) list * (compressor ref)
+type compressor = None | Noeud of (compressor ref) * (int list) * (compressor ref)
 
 let rec list_to_llist l = 
     match l with
@@ -156,7 +156,7 @@ let rec list_to_llist l =
 let make_compressor (pair : pair)  =
     match pair with
     |None -> None
-    |Nodep(s, v_list) -> Noeud(ref None, list_to_llist (!v_list), ref None) 
+    |Nodep(s, v_list) -> Noeud(ref None, !v_list, ref None) 
 ;;
 
 let rec print_list_list (l : (int list) list) =
@@ -168,15 +168,14 @@ let rec print_list_list (l : (int list) list) =
 let rec print_compressor (pair : compressor) = 
     match pair with
     | None -> Printf.printf "*\n";
-    | Noeud(left, v_list_list, right) -> 
+    | Noeud(left, v_list, right) -> 
         print_compressor !left; 
-        print_list_list v_list_list; 
+        printList v_list; 
         print_compressor !right;
 ;;
 
 let pairList_to_map (list : pair list) (length : int)=
     let lib = ref (Hashtbl.create length) in
-    
     let rec helper (list : pair list) lib = 
         match list with
         |[] -> ()
@@ -238,18 +237,38 @@ let compress_ast (abr : abr) (length : int) =
             let mot_root = Hashtbl.find !value_mot v in
             (* Hashtbl.iter (fun a b -> Printf.printf " |%s: " a; print_compressor !b) !mot_noeud; *)
             !(Hashtbl.find !mot_noeud mot_root)
-;;       
+;;
+
+let rec search (list: int list) (value : int) = 
+    match list with
+    | [] -> false
+    | x::rest -> 
+        if x = value then true else search rest value 
+;;
+
+let rec search_compressor (com : compressor) (value : int) =
+    match com with
+    | None -> false
+    | Noeud(l, v_list,r) ->
+        match v_list with
+        |[] -> false
+        |x::rest -> 
+            if value < x then search_compressor !l value
+            else
+            let res = search rest value in
+            if not res then search_compressor !r value
+            else res
+;;
+
 
 (* ------- main ------- *)
 let () = 
     (* let a_list = gen_permutation 15 in *)
-    let a_list = [4; 2; 1; 3; 8; 6; 5; 7; 9] in 
-    printList a_list;
+    let a_list = [4; 2; 1; 3; 8; 6; 5; 7; 9] in
     let n = List.length a_list in
     let a = ajouteList Empty a_list in 
     (* let pair_list, value_to_mot = tree_traversal a n in*)
     (* let lib = pairList_to_map !pair_list n in*)
     (* Hashtbl.iter (fun a b -> Printf.printf " |%d: " a; Printf.printf " %s " b) !value_to_mot *)
     let root = compress_ast a n in
-    print_compressor root
-
+    Printf.printf "%b : " (search_compressor root 9);
