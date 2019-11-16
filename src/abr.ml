@@ -167,15 +167,15 @@ let rec print_list_list (l : (int list) list) =
 
 let rec print_compressor (pair : compressor) = 
     match pair with
-    | None -> Printf.printf " None ";
+    | None -> Printf.printf "*\n";
     | Noeud(left, v_list_list, right) -> 
-        (* print_compressor !left;  *)
+        print_compressor !left; 
         print_list_list v_list_list; 
-        (* print_compressor !right; *)
+        print_compressor !right;
 ;;
 
-let pairList_to_map (list : pair list) =
-    let lib = ref (Hashtbl.create (List.length list)) in
+let pairList_to_map (list : pair list) (length : int)=
+    let lib = ref (Hashtbl.create length) in
     
     let rec helper (list : pair list) lib = 
         match list with
@@ -225,15 +225,31 @@ let connect_node (abr : abr)
                         |Noeud(fg, v_List_list, fd) -> fd:=!noder;
                         Queue.push r queue;
             done
-        in bfs abr lib value_mot; lib
+        in bfs abr lib value_mot;
 ;;
 
+let compress_ast (abr : abr) (length : int) =
+    match abr with
+        | Empty -> None
+        | Node(v,_,_) -> 
+            let pair_list, value_mot = tree_traversal abr length in
+            let mot_noeud = pairList_to_map !pair_list length in
+            connect_node abr mot_noeud value_mot;
+            let mot_root = Hashtbl.find !value_mot v in
+            (* Hashtbl.iter (fun a b -> Printf.printf " |%s: " a; print_compressor !b) !mot_noeud; *)
+            !(Hashtbl.find !mot_noeud mot_root)
+;;       
+
 (* ------- main ------- *)
-(* let arr = gen_permutation 10 *)
-let a_list = [4; 2; 1; 3; 8; 6; 5; 7; 9]
-let n = List.length a_list
-let a = ajouteList Empty a_list
-let pair_list, value_to_mot = tree_traversal a n
-let lib = pairList_to_map !pair_list
-(* let () = Hashtbl.iter (fun a b -> Printf.printf " |%d: " a; Printf.printf " %s " b) !value_to_mot *)
-let () = Hashtbl.iter (fun a b -> Printf.printf " |%s: " a; print_compressor !b) !(connect_node a lib value_to_mot);
+let () = 
+    (* let a_list = gen_permutation 15 in *)
+    let a_list = [4; 2; 1; 3; 8; 6; 5; 7; 9] in 
+    printList a_list;
+    let n = List.length a_list in
+    let a = ajouteList Empty a_list in 
+    (* let pair_list, value_to_mot = tree_traversal a n in*)
+    (* let lib = pairList_to_map !pair_list n in*)
+    (* Hashtbl.iter (fun a b -> Printf.printf " |%d: " a; Printf.printf " %s " b) !value_to_mot *)
+    let root = compress_ast a n in
+    print_compressor root
+
