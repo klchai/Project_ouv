@@ -139,7 +139,7 @@ let change_Tree_to_pairList abr =
         let mot = "(" ^ (helper l list) ^ ")" ^ (helper r list) in
         ajoute_mot_value mot v list list;
         mot
-    in  (helper abr list); 
+    in  (fun x -> ())(helper abr list); 
     list
 ;;
 
@@ -192,3 +192,4 @@ let a_list = [4; 2; 1; 3; 8; 6; 5; 7; 9]
 let a = ajouteList Empty a_list
 let p_list = change_Tree_to_pairList a
 let lib = pairList_to_map !p_list
+let () = Hashtbl.iter (fun a b -> print_string a; print_compressor b) !lib;
